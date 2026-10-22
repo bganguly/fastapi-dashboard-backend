@@ -99,8 +99,6 @@ _deploy_azure() {
     --source . \
     --target-port 8000 \
     --ingress external \
-    --min-replicas 0 \
-    --max-replicas 3 \
     --env-vars "DATABASE_URL=${DB_URL}"
 
   local BACKEND_URL
