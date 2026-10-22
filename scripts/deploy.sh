@@ -22,7 +22,7 @@ _az_fixup_path() {
 }
 
 _prompt_menu() {
-  printf '\n=== angular-dashboard-backend ===\n\n'
+  printf '\n=== angular-fastapi-dashboard-backend ===\n\n'
   printf '  [1] Local  — uvicorn on localhost:8000\n'
   printf '  [2] Azure  — Azure Container Apps\n'
   printf '\nChoice [1/2, default 2]: '

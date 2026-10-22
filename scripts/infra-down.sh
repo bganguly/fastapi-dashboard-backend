@@ -22,7 +22,7 @@ _az_fixup_path() {
 }
 
 _prompt_menu() {
-  printf '\n=== angular-dashboard-backend infra-down ===\n\n'
+  printf '\n=== angular-fastapi-dashboard-backend infra-down ===\n\n'
   printf '  [1] Stop local uvicorn (kill process on :8000)\n'
   printf '  [2] Destroy Azure Container Apps stack\n'
   printf '\nChoice [1/2, default 1]: '

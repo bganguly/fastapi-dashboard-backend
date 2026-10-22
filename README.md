@@ -1,4 +1,4 @@
-# angular-dashboard-backend — FastAPI + Azure Container Apps
+# angular-fastapi-dashboard-backend — FastAPI + Azure Container Apps
 
 Production-grade **Python 3.12 / FastAPI** REST API delivering sub-second responses across
 4 million orders: full-text search, pre-aggregated analytics tables, and serverless autoscaling
@@ -60,7 +60,7 @@ Browser ──HTTPS──► Angular SPA (Azure SWA) ──HTTPS /api/*──►
 │   └──────────────────────────────────────────────────────────────────┘  │
 │                              │ HTTPS (/api/*)                            │
 │   ┌──────────────────────────▼───────────────────────────────────────┐  │
-│   │  Azure Container Apps: angular-dashboard-backend                 │  │
+│   │  Azure Container Apps: angular-fastapi-dashboard-backend                 │  │
 │   │  • FastAPI (Python 3.12) — uvicorn                               │  │
 │   │  • ThreadedConnectionPool (psycopg2) — min 2, max 10 conns       │  │
 │   │  • REST: /api/orders, /api/aggregates, /api/customers,           │  │
@@ -74,7 +74,7 @@ Browser ──HTTPS──► Angular SPA (Azure SWA) ──HTTPS /api/*──►
 Deploy flow
 ───────────
 local machine
-  ├─ angular-dashboard-backend/scripts/deploy.sh  → Azure Container Apps (API)
+  ├─ angular-fastapi-dashboard-backend/scripts/deploy.sh  → Azure Container Apps (API)
   │    └─ prints BACKEND_URL → set in environment.prod.ts
   └─ angular-dashboard/scripts/deploy.sh          → Azure SWA (frontend)
 ```
