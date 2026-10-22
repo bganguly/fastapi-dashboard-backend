@@ -1,4 +1,4 @@
-# angular-fastapi-dashboard-backend — FastAPI + Azure Container Apps
+# fastapi-dashboard-backend — FastAPI + Azure Container Apps
 
 Production-grade **Python 3.12 / FastAPI** REST API delivering sub-second responses across
 4 million orders: full-text search, pre-aggregated analytics tables, and serverless autoscaling
@@ -54,13 +54,13 @@ Browser ──HTTPS──► Angular SPA (Azure SWA) ──HTTPS /api/*──►
 │                                                                          │
 │   Azure Static Web Apps                                                  │
 │   ┌──────────────────────────────────────────────────────────────────┐  │
-│   │  angular-dashboard (SWA)                                         │  │
+│   │  fastapi-angular-dashboard-frontend (SWA)                                         │  │
 │   │  • Compiled Angular 19 SPA served from Azure CDN                 │  │
 │   │  • Free tier — always-on, global edge                            │  │
 │   └──────────────────────────────────────────────────────────────────┘  │
 │                              │ HTTPS (/api/*)                            │
 │   ┌──────────────────────────▼───────────────────────────────────────┐  │
-│   │  Azure Container Apps: angular-fastapi-dashboard-backend                 │  │
+│   │  Azure Container Apps: fastapi-dashboard-backend                 │  │
 │   │  • FastAPI (Python 3.12) — uvicorn                               │  │
 │   │  • ThreadedConnectionPool (psycopg2) — min 2, max 10 conns       │  │
 │   │  • REST: /api/orders, /api/aggregates, /api/customers,           │  │
@@ -74,9 +74,9 @@ Browser ──HTTPS──► Angular SPA (Azure SWA) ──HTTPS /api/*──►
 Deploy flow
 ───────────
 local machine
-  ├─ angular-fastapi-dashboard-backend/scripts/deploy.sh  → Azure Container Apps (API)
+  ├─ fastapi-dashboard-backend/scripts/deploy.sh  → Azure Container Apps (API)
   │    └─ prints BACKEND_URL → set in environment.prod.ts
-  └─ angular-dashboard/scripts/deploy.sh          → Azure SWA (frontend)
+  └─ fastapi-angular-dashboard-frontend/scripts/deploy.sh          → Azure SWA (frontend)
 ```
 
 ### Key design decisions
@@ -131,7 +131,7 @@ local machine
 After the backend URL is set in the frontend environment file:
 
 ```bash
-cd ../angular-dashboard
+cd ../fastapi-angular-dashboard-frontend
 ./scripts/deploy.sh      # [2] Azure SWA
 ```
 
