@@ -4,9 +4,6 @@ from db import get_conn
 
 router = APIRouter()
 
-COUNT_CAP = 10_000
-
-
 @router.get("/api/aggregates")
 def get_aggregates(
     from_: str = Query(alias="from"),
@@ -23,19 +20,14 @@ def get_aggregates(
 
     if includeTotal:
         count_sql = """
-            SELECT COUNT(*) FROM (
-                SELECT 1 FROM orders
-                WHERE "placedAt"::date BETWEEN %s::date AND %s::date
-                LIMIT %s
-            ) _sub
+            SELECT COUNT(DISTINCT id) FROM orders
+            WHERE "placedAt"::date BETWEEN %s::date AND %s::date
         """
         with get_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute(count_sql, [from_, to, COUNT_CAP + 1])
-                raw = cur.fetchone()[0]
-        approximate = raw > COUNT_CAP
-        result["totalOrders"] = COUNT_CAP if approximate else raw
-        result["totalOrdersApproximate"] = approximate
+                cur.execute(count_sql, [from_, to])
+                result["totalOrders"] = cur.fetchone()[0]
+        result["totalOrdersApproximate"] = False
 
     return result
 
