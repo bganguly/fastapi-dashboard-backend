@@ -6,7 +6,6 @@ from db import get_conn
 router = APIRouter()
 
 VALID_SORTS = {"placedAt", "total", "status", "customer", "id"}
-COUNT_CAP = 10_000
 
 
 @router.get("/api/orders")
@@ -69,14 +68,11 @@ def list_orders(
     }.get(safe_sort, f'o."placedAt" {safe_dir}')
 
     count_sql = f"""
-        SELECT COUNT(*) FROM (
-            SELECT 1
-            FROM orders o
-            JOIN customers c ON c.id = o."customerId"
-            JOIN regions r ON r.id = o."regionId"
-            {where}
-            LIMIT {COUNT_CAP + 1}
-        ) _sub
+        SELECT COUNT(*)
+        FROM orders o
+        JOIN customers c ON c.id = o."customerId"
+        JOIN regions r ON r.id = o."regionId"
+        {where}
     """
 
     data_sql = f"""
@@ -98,8 +94,8 @@ def list_orders(
             cur.execute(data_sql, params + [pageSize, (page - 1) * pageSize])
             rows = cur.fetchall()
 
-    approximate = raw_count > COUNT_CAP
-    total = COUNT_CAP if approximate else raw_count
+    approximate = False
+    total = raw_count
     total_pages = max(1, -(-total // pageSize))
 
     data = [
