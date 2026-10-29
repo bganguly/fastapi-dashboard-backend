@@ -5,7 +5,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import orders, aggregates, customers, regions
+from routes import orders, aggregates, customers, regions, dataset_bounds
 
 app = FastAPI(title="Angular Dashboard API", docs_url="/docs", redoc_url=None)
 
@@ -20,6 +20,7 @@ app.include_router(orders.router)
 app.include_router(aggregates.router)
 app.include_router(customers.router)
 app.include_router(regions.router)
+app.include_router(dataset_bounds.router)
 
 
 @app.get("/health")
