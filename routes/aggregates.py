@@ -1,4 +1,3 @@
-from collections import defaultdict
 from fastapi import APIRouter, Query
 from db import get_conn
 
@@ -15,7 +14,7 @@ def get_aggregates(
     result: dict = {}
 
     if includeData:
-        rows = _query_daily_summary(from_, to)
+        rows = _query_daily_summary_bucketed(from_, to, topCategories)
         result["data"] = _build_result(rows, topCategories)
 
     if includeTotal:
@@ -32,20 +31,32 @@ def get_aggregates(
     return result
 
 
-def _query_daily_summary(from_: str, to: str) -> list:
+def _query_daily_summary_bucketed(from_: str, to: str, top_n: int) -> list:
     sql = """
-        SELECT date::text AS day, "categoryName" AS category,
+        WITH top_cats AS (
+            SELECT "categoryName"
+            FROM daily_summary
+            WHERE date BETWEEN %s::date AND %s::date
+            GROUP BY "categoryName"
+            ORDER BY SUM("totalOrders") DESC
+            LIMIT %s
+        )
+        SELECT date::text AS day,
+               CASE WHEN "categoryName" IN (SELECT "categoryName" FROM top_cats)
+                    THEN "categoryName" ELSE 'Others' END AS category,
                SUM("totalOrders")  AS total_orders,
                SUM("totalRevenue") AS total_revenue,
                SUM("totalItems")   AS total_items
         FROM daily_summary
         WHERE date BETWEEN %s::date AND %s::date
-        GROUP BY date, "categoryName"
+        GROUP BY date,
+                 CASE WHEN "categoryName" IN (SELECT "categoryName" FROM top_cats)
+                      THEN "categoryName" ELSE 'Others' END
         ORDER BY date
     """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, [from_, to])
+            cur.execute(sql, [from_, to, top_n, from_, to])
             return cur.fetchall()
 
 
@@ -63,44 +74,24 @@ def _build_result(rows: list, top_n: int) -> list:
             "totalItems": int(total_items or 0),
         }
 
-    cat_totals: dict[str, int] = defaultdict(int)
-    for day_cats in by_day.values():
-        for cat, vals in day_cats.items():
-            cat_totals[cat] += vals["totalOrders"]
-
-    top_cats = {
-        k for k, _ in sorted(cat_totals.items(), key=lambda x: -x[1])[:top_n]
-    }
-
     result = []
     for day in day_order:
         cats: dict = {}
-        others_orders = 0
-        others_revenue = 0.0
-        others_items = 0
-
+        others_entry = None
         for cat, vals in by_day[day].items():
             o, r, i = vals["totalOrders"], vals["totalRevenue"], vals["totalItems"]
-            if cat in top_cats:
-                cats[cat] = {
-                    "totalOrders": o,
-                    "totalRevenue": r,
-                    "totalItems": i,
-                    "avgOrderValue": r / o if o > 0 else 0.0,
-                }
-            else:
-                others_orders += o
-                others_revenue += r
-                others_items += i
-
-        if others_orders > 0:
-            cats["Others"] = {
-                "totalOrders": others_orders,
-                "totalRevenue": others_revenue,
-                "totalItems": others_items,
-                "avgOrderValue": others_revenue / others_orders,
+            entry = {
+                "totalOrders": o,
+                "totalRevenue": r,
+                "totalItems": i,
+                "avgOrderValue": r / o if o > 0 else 0.0,
             }
-
+            if cat == "Others":
+                others_entry = entry
+            else:
+                cats[cat] = entry
+        if others_entry is not None:
+            cats["Others"] = others_entry
         result.append({"date": day, "categories": cats})
 
     return result
