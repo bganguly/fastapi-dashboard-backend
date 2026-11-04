@@ -28,6 +28,24 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/schema")
+def debug_schema():
+    from db import get_conn
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT table_name, column_name, data_type
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                ORDER BY table_name, ordinal_position
+            """)
+            rows = cur.fetchall()
+    result = {}
+    for table, col, dtype in rows:
+        result.setdefault(table, []).append(f"{col} ({dtype})")
+    return result
+
+
 @app.get("/")
 def root():
     return {
