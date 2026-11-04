@@ -92,32 +92,24 @@ def _query_orders_live(from_: str, to: str, top_n: int, q, status, regionCode, m
     where = "WHERE " + " AND ".join(clauses)
 
     sql = f"""
-        WITH top_cats AS (
-            SELECT o."categoryName"
-            FROM orders o
-            JOIN customers c ON c.id = o."customerId"
-            JOIN regions r ON r.id = o."regionId"
-            {where}
-            GROUP BY o."categoryName"
-            ORDER BY COUNT(*) DESC
-            LIMIT %s
-        )
         SELECT o."placedAt"::date::text AS day,
-               CASE WHEN o."categoryName" IN (SELECT "categoryName" FROM top_cats)
-                    THEN o."categoryName" ELSE 'Others' END AS category,
-               COUNT(*) AS total_orders,
-               SUM(o.total) AS total_revenue,
-               0 AS total_items
+               cat.name AS category,
+               COUNT(DISTINCT o.id) AS total_orders,
+               COALESCE(SUM(oi.quantity * CAST(oi."unitPrice" AS FLOAT8) * (1 - CAST(oi.discount AS FLOAT8))), 0) AS total_revenue,
+               COALESCE(SUM(oi.quantity), 0) AS total_items
         FROM orders o
         JOIN customers c ON c.id = o."customerId"
         JOIN regions r ON r.id = o."regionId"
+        JOIN order_items oi ON oi."orderId" = o.id
+        JOIN products p ON p.id = oi."productId"
+        JOIN categories cat ON cat.id = p."categoryId"
         {where}
-        GROUP BY day, category
-        ORDER BY day
+        GROUP BY o."placedAt"::date, cat.name
+        ORDER BY o."placedAt"::date
     """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(sql, params + [top_n] + params)
+            cur.execute(sql, params)
             return cur.fetchall()
 
 
