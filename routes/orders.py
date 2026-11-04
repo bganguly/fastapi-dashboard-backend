@@ -8,6 +8,45 @@ router = APIRouter()
 VALID_SORTS = {"placedAt", "total", "status", "customer", "id"}
 
 
+def _build_count_cache_key(q, status, regionCode, from_, to, minTotal, maxTotal) -> str:
+    return (
+        f"q={q.strip().lower() if q else ''}"
+        f"&status={status or ''}"
+        f"&regionCode={regionCode or ''}"
+        f"&from={from_ or ''}"
+        f"&to={to or ''}"
+        f"&minTotal={Decimal(minTotal).normalize() if minTotal is not None else ''}"
+        f"&maxTotal={Decimal(maxTotal).normalize() if maxTotal is not None else ''}"
+    )
+
+
+def _cached_count(cur, count_sql: str, params: list, cache_key: str) -> int:
+    try:
+        cur.execute(
+            "SELECT total FROM count_cache WHERE cache_key = %s AND cached_at > NOW() - INTERVAL '30 days'",
+            [cache_key],
+        )
+        row = cur.fetchone()
+        if row:
+            return row[0]
+    except Exception:
+        pass
+
+    cur.execute(count_sql, params)
+    total = cur.fetchone()[0]
+
+    try:
+        cur.execute(
+            "INSERT INTO count_cache (cache_key, total, cached_at) VALUES (%s, %s, NOW()) "
+            "ON CONFLICT (cache_key) DO UPDATE SET total = %s, cached_at = NOW()",
+            [cache_key, total, total],
+        )
+    except Exception:
+        pass
+
+    return total
+
+
 @router.get("/api/orders")
 def list_orders(
     q: Optional[str] = None,
@@ -87,10 +126,11 @@ def list_orders(
         LIMIT %s OFFSET %s
     """
 
+    cache_key = _build_count_cache_key(q, status, regionCode, from_, to, minTotal, maxTotal)
+
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(count_sql, params)
-            raw_count = cur.fetchone()[0]
+            raw_count = _cached_count(cur, count_sql, params, cache_key)
             cur.execute(data_sql, params + [pageSize, (page - 1) * pageSize])
             rows = cur.fetchall()
 
